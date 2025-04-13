@@ -4,10 +4,14 @@ import { sendMessage, chatStream } from './chat';
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [sender, setSender] = useState('');
 
   useEffect(() => {
-    const sub = chatStream.subscribe((message) => {
-      setMessages((prev) => [...prev, message]);
+    const username = prompt('Enter your name:');
+    setSender(username ?? 'Anonymous');
+
+    const sub = chatStream.subscribe((msg) => {
+      setMessages((prev) => [...prev, msg]);
     });
 
     return () => sub.unsubscribe();
@@ -15,7 +19,9 @@ export default function App() {
 
   const handleSend = () => {
     if (input.trim()) {
-      sendMessage({ text: input, timestamp: new Date().toISOString() });
+      const timestamp = new Date().toISOString();
+
+      sendMessage({ sender, text: input, timestamp });
       setInput('');
     }
   };
@@ -28,10 +34,12 @@ export default function App() {
         </h1>
 
         <div className="h-64 overflow-y-auto rounded bg-white p-4 shadow-md">
-          {messages.map((message, index) => (
-            <div key={index} className="text-sm text-slate-800">
-              [{new Date(message.timestamp).toLocaleTimeString()}]{' '}
-              {message.text}
+          {messages.map((msg, idx) => (
+            <div key={idx} className="text-sm text-slate-800">
+              <strong>{msg.sender}:</strong> {msg.text}
+              <span className="ml-2 text-xs text-gray-400">
+                {new Date(msg.timestamp).toLocaleTimeString()}
+              </span>
             </div>
           ))}
         </div>
@@ -43,7 +51,6 @@ export default function App() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           />
-
           <button
             className="rounded bg-teal-600 px-4 py-2 text-white"
             onClick={handleSend}
