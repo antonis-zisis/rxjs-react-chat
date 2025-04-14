@@ -38,6 +38,8 @@ Start the app
 bun dev
 ```
 
+You can open two or more tabs on the browser to try it out.
+
 ## How It Works
 
 ### WebSocket Streaming
