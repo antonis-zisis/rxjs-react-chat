@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { sendMessage } from './chat';
 import { Chat } from './components/Chat';
@@ -8,7 +8,7 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [entered, setEntered] = useState(false);
 
-  useEffect(() => {
+  const sendSystemMessage = useCallback(() => {
     if (entered && username) {
       sendMessage({
         type: 'system',
@@ -18,6 +18,10 @@ export default function App() {
       });
     }
   }, [entered, username]);
+
+  useEffect(() => {
+    sendSystemMessage();
+  }, [sendSystemMessage]);
 
   if (!entered) {
     return (

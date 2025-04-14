@@ -6,6 +6,7 @@ import {
   sendMessage,
   typingSubject,
 } from '../chat';
+import { formatTimestamp } from '../utils/helpers';
 
 export function Chat({ username }) {
   const [messages, setMessages] = useState([]);
@@ -17,45 +18,50 @@ export function Chat({ username }) {
   useEffect(() => {
     const unsubscribe = initializeTypingStream();
 
-    return () => {
-      unsubscribe?.();
-    };
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     const subscription = chatStream.subscribe((message) => {
-      if (message.type === 'typing' && message.sender !== username) {
-        setTypingUsers((prev) =>
-          prev.includes(message.sender) ? prev : [...prev, message.sender]
-        );
-      }
-
-      if (message.type === 'stop_typing') {
-        setTypingUsers((prev) =>
-          prev.filter((sender) => sender !== message.sender)
-        );
-      }
-
-      if (message.type === 'message' || message.type === 'system') {
-        setMessages((prev) => [...prev, message]);
-
-        setTypingUsers((prev) =>
-          prev.filter((sender) => sender !== message.sender)
-        );
-      }
+      handleMessage(message);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleMessage = (message) => {
+    if (message.type === 'typing' && message.sender !== username) {
+      setTypingUsers((prev) =>
+        prev.includes(message.sender) ? prev : [...prev, message.sender]
+      );
+    }
+
+    if (message.type === 'stop_typing') {
+      setTypingUsers((prev) =>
+        prev.filter((sender) => sender !== message.sender)
+      );
+    }
+
+    if (message.type === 'message' || message.type === 'system') {
+      setMessages((prev) => [...prev, message]);
+      setTypingUsers((prev) =>
+        prev.filter((sender) => sender !== message.sender)
+      );
+    }
+  };
+
+  const scrollToBottom = () => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
         top: chatContainerRef.current.scrollHeight,
         behavior: 'smooth',
       });
     }
-  }, [messages]);
+  };
 
   const handleTyping = (event) => {
     setText(event.target.value);
@@ -65,75 +71,68 @@ export function Chat({ username }) {
   const handleSend = () => {
     if (text.trim()) {
       const timestamp = new Date().toISOString();
-
       sendMessage({ type: 'message', sender: username, text, timestamp });
       setText('');
     }
   };
 
+  const renderMessage = (message, index) => {
+    const isMine = message.sender === username;
+    const timestamp = formatTimestamp(message.timestamp);
+
+    if (message.type === 'system') {
+      return (
+        <div
+          key={index}
+          className="flex justify-center text-xs text-slate-400 italic"
+        >
+          {message.text}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={index}
+        className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+      >
+        <div
+          className={`flex max-w-full flex-col ${isMine ? 'items-end' : 'items-start'}`}
+        >
+          <div
+            className={`mb-0.5 text-xs font-normal text-slate-400 ${isMine ? 'pr-2 text-right' : 'self-start pl-2 text-left'}`}
+          >
+            {isMine ? timestamp : `${message.sender} - ${timestamp}`}
+          </div>
+
+          <div
+            className={`w-fit max-w-xs rounded-2xl px-4 py-2 shadow md:max-w-sm ${
+              isMine
+                ? 'rounded-br-none bg-teal-500 text-white'
+                : 'rounded-bl-none bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-white'
+            }`}
+          >
+            <div>{message.text}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center bg-slate-50 p-8">
       <div className="w-full max-w-md space-y-4">
-        <h1 className="mb-10 text-2xl font-semibold text-slate-800">
+        <h1 className="mb-5 text-center text-2xl font-semibold text-slate-800">
           Hello <span className="text-teal-600">{username}</span>, welcome to
           the chat!
         </h1>
 
         <div
-          className="h-64 overflow-y-auto rounded bg-white p-4 shadow-md"
+          className="h-96 overflow-y-auto rounded bg-white p-4 shadow-md"
           ref={chatContainerRef}
         >
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
-            {messages.map((message, index) => {
-              const isMine = message.sender === username;
-              const timestamp = new Date(message.timestamp).toLocaleTimeString(
-                [],
-                {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }
-              );
-
-              if (message.type === 'system') {
-                return (
-                  <div
-                    key={index}
-                    className="flex justify-center text-xs text-slate-400 italic"
-                  >
-                    {message.text}
-                  </div>
-                );
-              }
-
-              return (
-                <div
-                  key={index}
-                  className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`flex max-w-full flex-col ${isMine ? 'items-end' : 'items-start'}`}
-                  >
-                    <div
-                      className={`mb-0.5 text-xs font-normal text-slate-400 ${
-                        isMine ? 'pr-2 text-right' : 'self-start pl-2 text-left'
-                      }`}
-                    >
-                      {isMine ? timestamp : `${message.sender} - ${timestamp}`}
-                    </div>
-
-                    <div
-                      className={`w-fit max-w-xs rounded-2xl px-4 py-2 shadow md:max-w-sm ${
-                        isMine
-                          ? 'rounded-br-none bg-teal-500 text-white'
-                          : 'rounded-bl-none bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-white'
-                      }`}
-                    >
-                      <div>{message.text}</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {messages.map(renderMessage)}
           </div>
         </div>
 

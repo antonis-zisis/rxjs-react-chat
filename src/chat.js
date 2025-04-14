@@ -22,18 +22,14 @@ const setupTypingStream = (sendTyping) => {
       throttleTime(2000),
       map((username) => ({ sender: username, type: 'typing' }))
     )
-    .subscribe((message) => {
-      sendTyping(message);
-    });
+    .subscribe(sendTyping);
 
   const stopTypingSub = typing$
     .pipe(
       debounceTime(3000),
       map((username) => ({ sender: username, type: 'stop_typing' }))
     )
-    .subscribe((message) => {
-      sendTyping(message);
-    });
+    .subscribe(sendTyping);
 
   subscription.add(typingSub);
   subscription.add(stopTypingSub);
@@ -42,9 +38,7 @@ const setupTypingStream = (sendTyping) => {
 };
 
 export const initializeTypingStream = () => {
-  return setupTypingStream((message) => {
-    sendMessage(message);
-  });
+  return setupTypingStream(sendMessage);
 };
 
 export const sendMessage = (message) => {
