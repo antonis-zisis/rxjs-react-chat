@@ -1,19 +1,51 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { sendMessage, chatStream } from '../chat';
+import {
+  chatStream,
+  initializeTypingStream,
+  sendMessage,
+  typingSubject,
+} from '../chat';
 
 export function Chat({ username }) {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [text, setText] = useState('');
+  const [typingUsers, setTypingUsers] = useState([]);
 
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    const sub = chatStream.subscribe((msg) => {
-      setMessages((prev) => [...prev, msg]);
+    const unsubscribe = initializeTypingStream();
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    const subscription = chatStream.subscribe((message) => {
+      if (message.type === 'typing' && message.sender !== username) {
+        setTypingUsers((prev) =>
+          prev.includes(message.sender) ? prev : [...prev, message.sender]
+        );
+      }
+
+      if (message.type === 'stop_typing') {
+        setTypingUsers((prev) =>
+          prev.filter((sender) => sender !== message.sender)
+        );
+      }
+
+      if (message.type === 'message') {
+        setMessages((prev) => [...prev, message]);
+
+        setTypingUsers((prev) =>
+          prev.filter((sender) => sender !== message.sender)
+        );
+      }
     });
 
-    return () => sub.unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -25,12 +57,17 @@ export function Chat({ username }) {
     }
   }, [messages]);
 
+  const handleTyping = (event) => {
+    setText(event.target.value);
+    typingSubject.next(username);
+  };
+
   const handleSend = () => {
-    if (input.trim()) {
+    if (text.trim()) {
       const timestamp = new Date().toISOString();
 
-      sendMessage({ sender: username, text: input, timestamp });
-      setInput('');
+      sendMessage({ type: 'message', sender: username, text, timestamp });
+      setText('');
     }
   };
 
@@ -89,13 +126,23 @@ export function Chat({ username }) {
           </div>
         </div>
 
+        <div className="h-5">
+          {typingUsers.length > 0 && (
+            <div className="flex justify-end text-sm text-slate-500 italic">
+              {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'}{' '}
+              typing...
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-2">
           <input
             className="flex-1 rounded border p-2"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            value={text}
+            onChange={handleTyping}
+            onKeyDown={(event) => event.key === 'Enter' && handleSend()}
           />
+
           <button
             className="rounded bg-teal-600 px-4 py-2 text-white"
             onClick={handleSend}
