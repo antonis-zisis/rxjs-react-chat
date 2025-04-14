@@ -1,11 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { sendMessage } from './chat';
 import { Chat } from './components/Chat';
 import { Landing } from './components/Landing';
 
 export default function App() {
   const [username, setUsername] = useState('');
   const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    if (entered && username) {
+      sendMessage({
+        type: 'system',
+        sender: username,
+        text: `${username} joined the chat`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, [entered, username]);
 
   if (!entered) {
     return (

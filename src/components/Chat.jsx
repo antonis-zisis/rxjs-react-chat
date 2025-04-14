@@ -36,7 +36,7 @@ export function Chat({ username }) {
         );
       }
 
-      if (message.type === 'message') {
+      if (message.type === 'message' || message.type === 'system') {
         setMessages((prev) => [...prev, message]);
 
         setTypingUsers((prev) =>
@@ -74,7 +74,7 @@ export function Chat({ username }) {
   return (
     <div className="flex min-h-screen flex-col items-center bg-slate-50 p-8">
       <div className="w-full max-w-md space-y-4">
-        <h1 className="text-2xl font-semibold text-slate-800">
+        <h1 className="mb-10 text-2xl font-semibold text-slate-800">
           Hello <span className="text-teal-600">{username}</span>, welcome to
           the chat!
         </h1>
@@ -93,6 +93,17 @@ export function Chat({ username }) {
                   minute: '2-digit',
                 }
               );
+
+              if (message.type === 'system') {
+                return (
+                  <div
+                    key={index}
+                    className="flex justify-center text-xs text-slate-400 italic"
+                  >
+                    {message.text}
+                  </div>
+                );
+              }
 
               return (
                 <div
